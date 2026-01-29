@@ -779,8 +779,10 @@ City Map Poster Generator
 
 Usage:
   python create_map_poster.py --city <city> --country <country> [options]
+  python create_map_poster.py --latitude <lat> --longitude <lon> [options]
 
 Examples:
+  # Using city and country
   # Iconic grid patterns
   python create_map_poster.py -c "New York" -C "USA" -t noir -d 12000           # Manhattan grid
   python create_map_poster.py -c "Barcelona" -C "Spain" -t warm_beige -d 8000   # Eixample district grid
@@ -808,12 +810,26 @@ Examples:
   python create_map_poster.py -c "London" -C "UK" -t noir -d 15000              # Thames curves
   python create_map_poster.py -c "Budapest" -C "Hungary" -t copper_patina -d 8000  # Danube split
 
+  # Using coordinates (without city/country)
+  # Generate map for a specific location
+  python create_map_poster.py --latitude 40.7128 --longitude -74.0060 --location-label "New York City" -t noir
+  python create_map_poster.py -lat 35.6762 -long 139.6503 -l "Shinjuku" -t japanese_ink -d 8000
+  python create_map_poster.py --lat 48.8566 --long 2.3522 -l "My Secret Spot" -t terracotta
+
   # List themes
   python create_map_poster.py --list-themes
 
 Options:
-  --city, -c        City name (required)
-  --country, -C     Country name (required)
+  Using city/country:
+  --city, -c        City name (required unless using coordinates)
+  --country, -C     Country name (required unless using coordinates)
+
+  Using coordinates:
+  --latitude, -lat   Latitude of center point (use with --longitude)
+  --longitude, -long Longitude of center point (use with --latitude)
+  --location-label, -l Custom label for location (optional when using coordinates)
+
+  Both modes:
   --country-label   Override country text displayed on poster
   --theme, -t       Theme name (default: terracotta)
   --all-themes      Generate posters for all themes
@@ -858,20 +874,26 @@ def list_themes():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Generate beautiful map posters for any city",
+        description="Generate beautiful map posters for any city or location",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Using city and country
   python create_map_poster.py --city "New York" --country "USA"
-  python create_map_poster.py --city "New York" --country "USA" -l 40.776676 -73.971321 --theme neon_cyberpunk
+  python create_map_poster.py --city "New York" --country "USA" --theme neon_cyberpunk
   python create_map_poster.py --city Tokyo --country Japan --theme midnight_blue
   python create_map_poster.py --city Paris --country France --theme noir --distance 15000
+
+  # Using coordinates (no city/country needed)
+  python create_map_poster.py --latitude 40.7128 --longitude -74.0060 --location-label "NYC" -t noir
+  python create_map_poster.py -lat 35.6762 -long 139.6503 -l "Shinjuku" -t japanese_ink
+
   python create_map_poster.py --list-themes
         """,
     )
 
-    parser.add_argument("--city", "-c", type=str, help="City name")
-    parser.add_argument("--country", "-C", type=str, help="Country name")
+    parser.add_argument("--city", "-c", type=str, help="City name (required unless using coordinates)")
+    parser.add_argument("--country", "-C", type=str, help="Country name (required unless using coordinates)")
     parser.add_argument(
         "--latitude",
         "-lat",
@@ -948,6 +970,12 @@ Examples:
         help='Google Fonts family name (e.g., "Noto Sans JP", "Open Sans"). If not specified, uses local Roboto fonts.',
     )
     parser.add_argument(
+        "--location-label",
+        "-l",
+        type=str,
+        help="Custom label for location (when using coordinates, or to override city name)",
+    )
+    parser.add_argument(
         "--format",
         "-f",
         default="png",
@@ -968,8 +996,9 @@ Examples:
         sys.exit(0)
 
     # Validate required arguments
-    if not args.city or not args.country:
-        print("Error: --city and --country are required.\n")
+    # Either provide city/country OR provide both latitude and longitude
+    if (not args.city or not args.country) and not (args.latitude and args.longitude):
+        print("Error: Provide either --city and --country, OR both --latitude and --longitude.\n")
         print_examples()
         sys.exit(1)
 
@@ -1012,7 +1041,10 @@ Examples:
 
     # Get coordinates and generate poster
     try:
-        if args.latitude and args.longitude:
+        # Determine if using coordinates or city/country
+        using_coordinates = args.latitude and args.longitude
+
+        if using_coordinates:
             lat = parse(args.latitude)
             lon = parse(args.longitude)
             coords = [lat, lon]
@@ -1020,12 +1052,21 @@ Examples:
         else:
             coords = get_coordinates(args.city, args.country)
 
+        # Determine city name for file naming and display
+        if using_coordinates:
+            # Use location_label if provided, otherwise use coordinates as name
+            city_name = args.location_label if args.location_label else f"lat_{lat:.4f}_lon_{lon:.4f}"
+            country_name = args.country if args.country else ""
+        else:
+            city_name = args.city
+            country_name = args.country
+
         for theme_name in themes_to_generate:
             THEME = load_theme(theme_name)
-            output_file = generate_output_filename(args.city, theme_name, args.format)
+            output_file = generate_output_filename(city_name, theme_name, args.format)
             create_poster(
-                args.city,
-                args.country,
+                city_name,
+                country_name,
                 coords,
                 args.distance,
                 output_file,
@@ -1033,7 +1074,7 @@ Examples:
                 args.width,
                 args.height,
                 country_label=args.country_label,
-                display_city=args.display_city,
+                display_city=args.display_city if args.display_city else args.location_label,
                 display_country=args.display_country,
                 fonts=custom_fonts,
             )
