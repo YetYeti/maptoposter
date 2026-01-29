@@ -48,29 +48,46 @@ pip install -r requirements.txt
 
 ### Generate Poster
 
-If you're using `uv`:
+**Mode 1: City & Country**
 ```bash
 uv run ./create_map_poster.py --city <city> --country <country> [options]
+```
+
+**Mode 2: Coordinates (No city name required)**
+```bash
+uv run ./create_map_poster.py --latitude <lat> --longitude <lon> [options]
 ```
 
 Otherwise (pip + venv):
 ```bash
 python create_map_poster.py --city <city> --country <country> [options]
+# OR
+python create_map_poster.py --latitude <lat> --longitude <lon> [options]
 ```
 
 ### Required Options
 
+Choose one mode:
+
+**Option A: City & Country**
 | Option | Short | Description |
 |--------|-------|-------------|
 | `--city` | `-c` | City name (used for geocoding) |
 | `--country` | `-C` | Country name (used for geocoding) |
 
+**Option B: Coordinates**
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--latitude` | `-lat` | Latitude of center point |
+| `--longitude` | `-long` | Longitude of center point |
+
 ### Optional Flags
 
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
-| **OPTIONAL:** `--latitude` | `-lat` | Override latitude center point (use with --longitude) | |
-| **OPTIONAL:** `--longitude` | `-long` | Override longitude center point (use with --latitude) | |
+| **OPTIONAL:** `--latitude` | `-lat` | Latitude of center point (use with --longitude, alternative to city) | |
+| **OPTIONAL:** `--longitude` | `-long` | Longitude of center point (use with --latitude, alternative to city) | |
+| **OPTIONAL:** `--location-label` | `-l` | Custom label for location (when using coordinates, or to override city name) | |
 | **OPTIONAL:** `--country-label` | | Override country text displayed on poster | |
 | **OPTIONAL:** `--theme` | `-t` | Theme name | terracotta |
 | **OPTIONAL:** `--distance` | `-d` | Map radius in meters | 18000 |
@@ -179,8 +196,31 @@ python create_map_poster.py -c "Mumbai" -C "India" -t contrast_zones -d 18000 # 
 # River cities
 python create_map_poster.py -c "London" -C "UK" -t noir -d 15000              # Thames curves
 python create_map_poster.py -c "Budapest" -C "Hungary" -t copper_patina -d 8000  # Danube split
+```
 
-# Override center coordinates
+#### Coordinate-Based Examples
+
+Generate maps without city/country names using exact coordinates:
+
+```bash
+# Generate map at specific coordinates (no text labels)
+python create_map_poster.py --latitude 48.8566 --longitude 2.3522 -t noir -d 8000
+
+# With custom location label (label will be displayed on poster)
+python create_map_poster.py -lat 40.7128 -long -74.0060 -l "New York City" -t neon_cyberpunk
+
+# Specific neighborhood without full city name
+python create_map_poster.py --latitude 35.6762 --longitude 139.6503 -l "Shinjuku" -t japanese_ink -d 8000
+
+# Remote location with custom name
+python create_map_poster.py -lat 21.3069 -long -157.8583 -l "North Shore, Oahu" -t ocean -d 10000
+```
+
+**Note:** When using coordinates (`--latitude` + `--longitude`) without city/country, text labels are automatically hidden for a clean, minimalist look. If you want text, add `--location-label`.
+
+#### Other Examples
+```bash
+# Override center coordinates with city name
 python create_map_poster.py --city "New York" --country "USA" -lat 40.776676 -long -73.971321 -t noir
 
 # List available themes
